@@ -26,28 +26,23 @@
   when: ansible_distribution | lower == 'debian' and grafana_apt_dependencies is defined
   with_items: "{{ grafana_apt_dependencies }}"
 
-- name: ensure grafana apt key is present
+- name: Add packagecloud.io repository key
   apt_key:
-    url=https://packagecloud.io/gpg.key
-    id=D59097AB
-    state=present
-  become: yes
-  tags: [ apt ]
+    url: "https://packagecloud.io/gpg.key"
+    state: present
 
-- name: ensure grafana apt repository is present
+- name: Add packagecloud.io repository
   apt_repository:
-    repo="deb https://packagecloud.io/grafana/stable/{{ ansible_os_family | lower }}/ {{ grafana_apt_distribution }} main"
-    update_cache=yes
-    state=present
-  become: yes
-  tags: [ apt ]
+    repo: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items:
+    - "deb https://packagecloud.io/grafana/stable/debian/ jessie main"
 
-- name: ensure grafana is installed
+- name: Install Grafana
   apt:
-    name=grafana
-    state=present
-  become: yes
-  tags: installation
+    name: "grafana"
+    state: present
 
 - name: ensure integrity of grafana configuration
   template:
@@ -58,38 +53,9 @@
     mode=0644
   become: yes
   notify: restart grafana
-  tags: configuration
 
-- name: ensure integrity of grafana configuration
-  template:
-    src=etc/default/grafana-server.j2
-    dest=/etc/default/grafana-server
-    owner="{{ grafana_user }}"
-    group="{{ grafana_group }}"
-    mode=0644
-  become: yes
-  notify: restart grafana
-  tags: configuration
-
-- name: ensure grafana directories ownership and permissions
-  file:
-    path="{{ item }}"
-    owner="{{ grafana_user }}"
-    group="{{ grafana_group }}"
-    mode=0755
-    state=directory
-  become: yes
-  with_items:
-    - "{{ grafana_dir_conf }}"
-    - "{{ grafana_dir_data }}"
-    - "{{ grafana_dir_home }}"
-    - "{{ grafana_dir_log }}"
-    - "{{ grafana_dir_plugins }}"
-
-- name: ensure grafana is running and enabled to start on boot
-  service:
-    name=grafana-server
-    state=started
-    enabled=yes
-  become: yes
-  tags: service
+- name: Enable Grafana
+  systemd:
+    name: grafana-server
+    state: started
+    enabled: True
