@@ -49,12 +49,20 @@
   with_items: "{{ grafana_plugins }}"
   notify: restart grafana
 
-- name: ensure integrity of grafana configuration
+- name: template grafana configuration
   template:
     src=etc/grafana/grafana.ini.j2
     dest="{{ grafana_conf_file }}"
     owner="{{ grafana_user }}"
     group="{{ grafana_group }}"
+    mode=0644
+  become: yes
+  notify: restart grafana
+
+- name: template grafana env vars
+  template:
+    src=etc/default/grafana-server.j2
+    dest="{{ grafana_default_file }}"
     mode=0644
   become: yes
   notify: restart grafana
